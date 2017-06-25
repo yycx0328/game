@@ -48,7 +48,6 @@ class Enemy:
 
     # 敌军飞机开火
     def fire(self):
-        pass
         self.bullets.append(EnemyBullet(self.x + 35, self.y + 95, './images/enemy-bullet.png'))
 
     # 飞机爆炸效果
@@ -119,6 +118,11 @@ class HeroBullet:
         else:
             return False
 
+    def is_hit_enemy(self, var_enemy):
+        if self.x >= var_enemy.x+10 and self.x <= var_enemy.x + 59 and self.y >= enemy.y and self.y <= var_enemy.y+10 + 89:
+            return True
+        return False
+
 
 class EnemyBullet:
     ''' 敌军飞机发射的子弹类 '''
@@ -141,6 +145,11 @@ class EnemyBullet:
             return True
         else:
             return False
+
+    def is_hit_hero(self, var_hero):
+        if self.x >= var_hero.x+10 and self.x <= var_hero.x + 92 and self.y >= var_hero.y+10 and self.y <= var_hero.y + 116:
+            return True
+        return False
 
 
 class HeroDirectionPriority:
@@ -166,6 +175,9 @@ class HeroDirectionPriority:
     # 按键释放后优先级重置为0
     def set_default(self, var_key):
         self.direction_priority[var_key] = 0
+
+# 我军飞机大小：102*126
+# 敌军飞机大小：69*99
 
 pygame.init()
 # 游戏主屏幕宽高
@@ -235,10 +247,15 @@ while True:
     # 子弹移动
     for bullet in hero.bullets:
         bullet.move()
+        if bullet.is_hit_enemy(enemy):
+            print('我军飞机已击中敌军')
+
 
     # 子弹移动
     for bullet in enemy.bullets:
         bullet.move()
+        if bullet.is_hit_hero(hero):
+            print('敌机已击中我军飞机')
 
     pygame.display.update()
     time.sleep(0.001)
