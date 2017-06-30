@@ -3,13 +3,26 @@ import sys
 import pygame
 import time
 import random
+import configparser
+
+
+class ConfigHelper:
+    ''' 配置文件帮助类 '''
+    def __init__(self, var_cfg_file):
+        self.config = configparser.ConfigParser()
+        with open(var_cfg_file, 'r') as cfg:
+            self.config.readfp(cfg)
+
+    # 根据KEY获取配置值
+    def get_config(self, var_key):
+        return self.config.get('info', var_key)
 
 
 class Enemy:
-    '''
-    敌军飞机类，包含飞机构建、移动、发射子弹、越界、爆炸功能
-    '''
+    ''' 敌军飞机类，包含飞机构建、移动、发射子弹、越界、爆炸功能 '''
+
     def __init__(self, var_x, var_y, var_image):
+        self.config = ConfigHelper('game.cfg')
         self.x = var_x
         self.y = var_y
         self.direct = 'right'
@@ -27,28 +40,31 @@ class Enemy:
 
     # 控制飞机左右移动
     def move(self):
-        self.y += 3
+        self.y += int(self.config.get_config('enemy_y_move_step'))
         if self.direct == 'left':
+            # 游戏向左移动超出右边界，开始向右移动
             if self.x >= 0:
-                self.x -= 8
+                self.x -= int(self.config.get_config('enemy_x_move_step'))
             else:
                 self.direct = 'right'
         elif self.direct == 'right':
-            if self.x <= 725:
-                self.x += 8
+            # 游戏向右移动超出右边界，开始向左移动
+            if self.x <= int(self.config.get_config('screen_width')) - int(self.config.get_config('enemy_width')):
+                self.x += int(self.config.get_config('enemy_x_move_step'))
             else:
                 self.direct = 'left'
 
     # 是否超出屏幕下方
     def is_out_screen(self):
-        if self.y >= 510:
+        # 当敌机头部移动超出屏幕下方，则返回True
+        if self.y >= int(self.config.get_config('screen_height')) - int(self.config.get_config('enemy_height')):
             return True
         else:
             return False
 
     # 敌军飞机开火
     def fire(self):
-        self.bullets.append(EnemyBullet(self.x + 35, self.y + 95, './images/enemy-bullet.png'))
+        self.bullets.append(EnemyBullet(self.x + int(self.config.get_config('enemy_width'))/2, self.y + int(self.config.get_config('enemy_height')) - 10, './images/enemy-bullet.png'))
 
     # 飞机爆炸效果
     def bomb(self, var_screen, var_index):
@@ -56,10 +72,9 @@ class Enemy:
 
 
 class Hero:
-    '''
-    我军飞机类
-    '''
+    ''' 我军飞机类 '''
     def __init__(self, var_x, var_y, var_image):
+        self.config = ConfigHelper('game.cfg')
         self.x = var_x
         self.y = var_y
         self.image = var_image
@@ -79,26 +94,28 @@ class Hero:
         # 飞机向左移动，且越界判断
         if var_direction == 'left':
             if self.x > 0:
-                self.x -= 5
+                self.x -= int(self.config.get_config('hero_x_move_step'))
         # 飞机向右移动，且越界判断
         elif var_direction == 'right':
-            if self.x < 698:
-                self.x += 5
+            if self.x < int(self.config.get_config('screen_width')) - int(self.config.get_config('hero_width')):
+                self.x += int(self.config.get_config('hero_x_move_step'))
         elif var_direction == 'up':
-            if self.y > 300:
-                self.y -= 5
+            if self.y > int(self.config.get_config('screen_height')) / 2:
+                self.y -= int(self.config.get_config('hero_y_move_step'))
         elif var_direction == 'down':
-            if self.y < 498:
-                self.y += 5
+            if self.y < int(self.config.get_config('screen_height')) - int(self.config.get_config('hero_height')):
+                self.y += int(self.config.get_config('hero_y_move_step'))
 
     # 我军飞机开火
     def fire(self):
-        self.bullets.append(HeroBullet(self.x + 51, self.y - 10, './images/hero-bullet.png'))
+        self.bullets.append(HeroBullet(self.x + int(self.config.get_config('hero_width')) / 2, self.y - 10, './images/hero-bullet.png'))
 
 
 class HeroBullet:
     ''' 我军飞机发射的子弹类 '''
+
     def __init__(self, var_x, var_y, var_image):
+        self.config = ConfigHelper('game.cfg')
         self.x = var_x
         self.y = var_y
         self.image = var_image
@@ -109,7 +126,7 @@ class HeroBullet:
 
     # 子弹向上移动
     def move(self):
-        self.y -= 10
+        self.y -= int(self.config.get_config('hero_bullet_move_step'))
 
     # 子弹是否越界
     def is_out_screen(self):
@@ -119,7 +136,7 @@ class HeroBullet:
             return False
 
     def is_hit_enemy(self, var_enemy):
-        if self.x >= var_enemy.x+10 and self.x <= var_enemy.x + 59 and self.y >= enemy.y and self.y <= var_enemy.y+10 + 89:
+        if self.x >= var_enemy.x + 10 and self.x <= var_enemy.x + int(self.config.get_config('enemy_width')) - 10 and self.y >= enemy.y+10 and self.y <= var_enemy.y + int(self.config.get_config('enemy_height')) - 10:
             return True
         return False
 
@@ -127,6 +144,7 @@ class HeroBullet:
 class EnemyBullet:
     ''' 敌军飞机发射的子弹类 '''
     def __init__(self, var_x, var_y, var_image):
+        self.config = ConfigHelper('game.cfg')
         self.x = var_x
         self.y = var_y
         self.image = var_image
@@ -137,17 +155,17 @@ class EnemyBullet:
 
     # 子弹向上移动
     def move(self):
-        self.y += 10
+        self.y += int(self.config.get_config('enemy_bullet_move_step'))
 
     # 判断子弹是否越界
     def is_out_screen(self):
-        if self.y >= 800:
+        if self.y >= int(self.config.get_config('screen_width')):
             return True
         else:
             return False
 
     def is_hit_hero(self, var_hero):
-        if self.x >= var_hero.x+10 and self.x <= var_hero.x + 92 and self.y >= var_hero.y+10 and self.y <= var_hero.y + 116:
+        if self.x >= var_hero.x+10 and self.x <= var_hero.x + int(self.config.get_config('hero_width')) - 10 and self.y >= var_hero.y+10 and self.y <= var_hero.y + int(self.config.get_config('hero_height')) - 10:
             return True
         return False
 
@@ -180,13 +198,14 @@ class HeroDirectionPriority:
 # 敌军飞机大小：69*99
 
 pygame.init()
+config = ConfigHelper('game.cfg')
 # 游戏主屏幕宽高
-width = 800
-height = 600
+width = int(config.get_config('screen_width'))
+height = int(config.get_config('screen_height'))
 
 # 初始化我军飞机的x，y位置
-hero_x_pos = 360
-hero_y_pos = 480
+hero_x_pos = (width - int(config.get_config('hero_width'))) / 2
+hero_y_pos = height - int(config.get_config('hero_height'))
 
 # 构建屏幕
 screen = pygame.display.set_mode((width, height))
@@ -196,7 +215,7 @@ screen_bg = pygame.image.load("./images/bg.png")
 hero = Hero(hero_x_pos, hero_y_pos, './images/hero.png')
 # 构建敌军飞机
 enemy_image = './images/enemy.png'
-enemy = Enemy(random.randint(10, 800), 0, enemy_image)
+enemy = Enemy(random.randint(10, width), 0, enemy_image)
 
 hero_direct_priority = HeroDirectionPriority()
 
@@ -239,7 +258,7 @@ while True:
         enemy.bomb(screen, 1)
         enemy.bomb(screen, 2)
         enemy.bomb(screen, 3)
-        enemy = Enemy(random.randint(10, 800), 0, enemy_image)
+        enemy = Enemy(random.randint(10, width), 0, enemy_image)
 
     rdm_enemy_fire = random.randint(1, 30)
     if rdm_enemy_fire == 16:
